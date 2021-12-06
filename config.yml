@@ -2,7 +2,7 @@
 
 # -- 1. Where to do download the repo
 src_path: ./src 
-merida_repo: https://github.com/unisb-bioinf/MERIDA
+merida_repo: git@github.com:unisb-bioinf/MERIDA.git
 
 # -- 2. Where to build the binary
 bin_path: ./bin

@@ -1,4 +1,4 @@
-biimport os
+import os
 import re
 from glob import glob
 from datatable import dt, f, fread, join, update
@@ -11,14 +11,19 @@ merida_repo = config["merida_repo"]
 bin_path = config["bin_path"]
 
 # -- 0.1 Project tool installation
-rule download_merida:
+rule download_and_install_merida:
     params:
-        target=
+        repo=merida_repo
+    output:
+        src=os.path.join(src_path),
+        bin=os.path.join(bin_path)
     shell:
-        
-
-rule install_merida:
-    params:
-        target=
-    shell:
+        """
+        git clone {params.repo}
+        mv {params.repo} {params.src}
+        cd {params.src}
+        mkdir build
+        cd build
+        cmake -DEIGEN_PATH=$CONDA_PREFIX/cplex -DCPLEX_PATH=$CONDA_PREFIX/lib/python3.8/site-packages/cplex
+        """
 
