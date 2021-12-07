@@ -31,3 +31,12 @@ rule download_and_compile_merida:
         make
         ln -s `pwd`/MERIDA_ILP {output.bin}
         """
+
+# -- 1.0 Download the Project Data
+pset_list = config["pset_list"]
+rule download_psets:
+    input:
+        os.path.join(bin_path, "MERIDA_ILP")
+    params:
+        psets=
+

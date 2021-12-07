@@ -5,7 +5,20 @@ src_path: ./src
 merida_repo: git@github.com:bhklab/MERIDA.git
 
 # -- 2. Where to build the binary
+
+## If you make this a directory on your $PATH you can run the command without
+## specifying the install directory
 bin_path: /home/ceeles/bin
 
 # -- 3. Path to required packages
+
+## This pipeline requires ILOG CPLEX, closed source software form IBM
+## To install this software, register for an academic account with IBM
+## and request a free academic licencse
+## See: https://docs.computecanada.ca/wiki/CPLEX/en, 
+## NOTE: You do not need to build the module if you are not on Compute Canada, 
+## just specify the corret path tot the CPLEX_StudioXYZ directory for your 
+## version
 cplex_path: /home/ceeles/bin/CPLEX_Studio201
+
+# -- 4. Datasets to download
