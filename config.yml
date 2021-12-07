@@ -2,9 +2,10 @@
 
 # -- 1. Where to do download the repo
 src_path: ./src 
-merida_repo: git@github.com:unisb-bioinf/MERIDA.git
+merida_repo: git@github.com:bhklab/MERIDA.git
 
 # -- 2. Where to build the binary
-bin_path: ./bin
+bin_path: /home/ceeles/bin
 
-# -- 3. 
+# -- 3. Path to required packages
+cplex_path: /home/ceeles/bin/CPLEX_Studio201

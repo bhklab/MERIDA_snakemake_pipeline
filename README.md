@@ -29,18 +29,18 @@ repository.
 Conda can be used to install all Python and most OS system dependencies
 using:
 
-`conda env create --file envs/affymetrix.yml`
+`conda env create --file envs/merida.yml`
 
 This will take some time to run as it gathers and installs the correct
-package versions. The environent it creates should be called `affymetrix`.
+package versions. The environent it creates should be called `merida`.
 
 If it is not automatically activated after installation please run 
-`conda activate affymetrix` before proceeding to the next step.
+`conda activate merida` before proceeding to the next step.
 
 ### R Dependencies
 
 The `renv` package can be used to install all R dependencies (both CRAN and
-Bioconductor). R version 3.6.3 and `renv` are included as dependencies in the `environment.yml` file and should be installed automatically when setting up your conda environment.
+Bioconductor). R version 3.6.3 and `renv` are included as dependencies in the `merida.yml` file and should be installed automatically when setting up your conda environment.
 
 To initialize this project with renv run:
 
@@ -72,8 +72,8 @@ This pipeline assumes the following directory structure:
 └── scripts
 ```
 
-Please at minimum create the `rawdata` and `metadata` directories, as they are assumed to hold the raw Cytoscan HD plate data (.CEL) and the pairs file, respectively. For more information on the correct formatting for your pairs file, please see https://github.com/gustaveroussy/EaCoN.
-The remaining missing directories will be created automatically as the pipeline runs.
+## FIXME:: update expected directory structure
+Please at minimum create the `rawdata` and `metadata` directories.
 
 ### config.yaml
 
@@ -82,3 +82,5 @@ to all the parameters for your current pipeline use case. Documentation is provi
 in the `config.yaml` file on what each field should contain.
 
 ## Using the Pipeline
+
+TODO::
