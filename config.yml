@@ -19,6 +19,18 @@ bin_path: /home/ceeles/bin
 ## NOTE: You do not need to build the module if you are not on Compute Canada, 
 ## just specify the corret path tot the CPLEX_StudioXYZ directory for your 
 ## version
-cplex_path: /home/ceeles/bin/CPLEX_Studio201
+cplex_path: $CPLEX_HOME
 
 # -- 4. Datasets to download
+## TODO::
+
+# -- 5. Input data for MERIDA
+## TODO::
+rawdata: []
+
+# -- 6. Hyper parameter search space
+# Passed to Python range function to make a sequence
+M: {start: 2, stop: 514, step: 2}
+v: [1, 2, 3]
+
+#
