@@ -82,7 +82,7 @@ The `renv` package can be used to install all R dependencies (both CRAN and
 Bioconductor). R version 4.1 and `renv` are included as dependencies in the 
 `merida.yml` file and should be installed automatically when setting up your 
 conda environment. If R is not installed, you can install it via conda using 
-the command: `conda -c conda-forge r-base==4.1`.
+the command: `conda -c conda-forge R==4.1.1`.
 
 To initialize this project with renv run:
 
