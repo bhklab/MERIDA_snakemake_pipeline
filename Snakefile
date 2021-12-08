@@ -33,6 +33,7 @@ rule download_and_compile_merida:
         """
 
 # -- 1.0 Download the Project Data
+## TODO:: Add download and preprocessing scripts
 # pset_list = config["pset_list"]
 # rule download_psets:
 #     input:
@@ -40,4 +41,52 @@ rule download_and_compile_merida:
 #     params:
 #         psets=
 
-# -- 2.0 E
+# -- 2.0 Make MERIDA input files for to grid search hyperparameterss
+analysis_name = config["analysis_name"]
+feature_matrix = config["feature_matrix"]
+response_vector = config["response_vector"]
+out_dir = config["out_dir"]
+threshold = config["threshold"]
+
+M_range = config["M"]
+v_function = config["v"]
+
+M_list = list(range(M_range["start"], M_range["stop"] + 1, M_range["step"]))
+param_grid = [(m, v) for m in M_list for v in v_function]
+
+merida_files = [
+    f"procdata/merida_input/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
+        for m, v in param_grid
+]
+
+rule build_merida_input_files:
+    params:
+        grid=param_grid,
+        feature_matrix=feature_matrix,
+        response_vector=response_vector,
+        out_dir=out_dir,
+        threshold=threshold
+    output:
+        merida_files
+    run:
+        for fl, p in zip(output, params.grid):
+            config = (
+                f"File {params.feature_matrix}\n"
+                f"Directory {params.out_dir}\n"
+                f"M1 {p[0]}\n"
+                f"M2 {p[0]}\n"
+                f"WeightFunction {p[1]}\n"
+                f"IC50ValueFile {params.response_vector}\n"
+                f"Threshold {params.threshold}"
+            )
+            with open(fl, "w+") as f:
+                f.write(config)
+            
+## -- 3.0 Run MERIDA_ILP
+rule run_merida_ilp:
+    input:
+        merida_files
+    params:
+        "no"
+    shell:
+

@@ -1,0 +1,34 @@
+Study.Abbreviation,Available,SubtypeData,Study.Name
+ACC,Yes,Yes,Adrenocortical carcinoma
+BLCA,Yes,Yes,Bladder Urothelial Carcinoma
+BRCA,Yes,Yes,Breast invasive carcinoma
+CESC,Yes,No,Cervical squamous cell carcinoma and endocervical adenocarcinoma
+CHOL,Yes,No,Cholangiocarcinoma
+COAD,Yes,Yes,Colon adenocarcinoma
+DLBC,Yes,No,Lymphoid Neoplasm Diffuse Large B-cell Lymphoma
+ESCA,Yes,No,Esophageal carcinoma
+GBM,Yes,Yes,Glioblastoma multiforme
+HNSC,Yes,Yes,Head and Neck squamous cell carcinoma
+KICH,Yes,Yes,Kidney Chromophobe
+KIRC,Yes,Yes,Kidney renal clear cell carcinoma
+KIRP,Yes,Yes,Kidney renal papillary cell carcinoma
+LAML,Yes,Yes,Acute Myeloid Leukemia
+LGG,Yes,Yes,Brain Lower Grade Glioma
+LIHC,Yes,No,Liver hepatocellular carcinoma
+LUAD,Yes,Yes,Lung adenocarcinoma
+LUSC,Yes,Yes,Lung squamous cell carcinoma
+MESO,Yes,No,Mesothelioma
+OV,Yes,Yes,Ovarian serous cystadenocarcinoma
+PAAD,Yes,No,Pancreatic adenocarcinoma
+PCPG,Yes,No,Pheochromocytoma and Paraganglioma
+PRAD,Yes,Yes,Prostate adenocarcinoma
+READ,Yes,No,Rectum adenocarcinoma
+SARC,Yes,No,Sarcoma
+SKCM,Yes,Yes,Skin Cutaneous Melanoma
+STAD,Yes,Yes,Stomach adenocarcinoma
+TGCT,Yes,No,Testicular Germ Cell Tumors
+THCA,Yes,Yes,Thyroid carcinoma
+THYM,Yes,No,Thymoma
+UCEC,Yes,Yes,Uterine Corpus Endometrial Carcinoma
+UCS,Yes,No,Uterine Carcinosarcoma
+UVM,Yes,No,Uveal Melanoma
