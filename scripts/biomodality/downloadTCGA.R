@@ -18,10 +18,10 @@ download <- function(outDir, diseaseCodes){
   filenames <- c()
   for(disease in diseaseCodes){
     obj <- curatedTCGAData(
-      diseaseCode = disease, assays = "*", version = "2.0.1", dry.run = FALSE
+      diseaseCode = disease, assays = "RNA*", version = "2.0.1", dry.run = FALSE
     )
     filename <- paste0("TCGA_", disease, ".rds")
-    saveRDS(obj, paste0(outDir, filename))
+    saveRDS(obj, file.path(outDir, filename))
     filenames <- c(filenames, filename)
   }
   return(filenames)

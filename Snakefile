@@ -10,6 +10,35 @@ merida_repo = config["merida_repo"]
 bin_path = config["bin_path"]
 cplex_path = config["cplex_path"]
 
+# -- 0.1 Make MERIDA input files for to grid search hyperparameterss
+analysis_name = config["analysis_name"]
+feature_matrix = config["feature_matrix"]
+response_vector = config["response_vector"]
+out_dir = config["out_dir"]
+threshold = config["threshold"]
+
+M_range = config["M"]
+v_function = config["v"]
+
+M_list = list(range(M_range["start"], M_range["stop"] + 1, M_range["step"]))
+param_grid = [(m, v) for m in M_list for v in v_function]
+
+merida_files = [
+    f"procdata/merida_input/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
+        for m, v in param_grid
+]
+
+## -- 3.0 Run MERIDA_ILP
+merida_results = [
+    f"results/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
+        for m, v in param_grid
+]
+
+
+rule all:
+    input:
+        merida_results
+
 # -- 0.1 Project tool installation
 rule download_and_compile_merida:
     params:
@@ -41,23 +70,6 @@ rule download_and_compile_merida:
 #     params:
 #         psets=
 
-# -- 2.0 Make MERIDA input files for to grid search hyperparameterss
-analysis_name = config["analysis_name"]
-feature_matrix = config["feature_matrix"]
-response_vector = config["response_vector"]
-out_dir = config["out_dir"]
-threshold = config["threshold"]
-
-M_range = config["M"]
-v_function = config["v"]
-
-M_list = list(range(M_range["start"], M_range["stop"] + 1, M_range["step"]))
-param_grid = [(m, v) for m in M_list for v in v_function]
-
-merida_files = [
-    f"procdata/merida_input/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
-        for m, v in param_grid
-]
 
 rule build_merida_input_files:
     params:
@@ -70,23 +82,28 @@ rule build_merida_input_files:
         merida_files
     run:
         for fl, p in zip(output, params.grid):
+            # NOTE: MERIDA requires tab delimitation or will fail to read config
             config = (
-                f"File {params.feature_matrix}\n"
-                f"Directory {params.out_dir}\n"
-                f"M1 {p[0]}\n"
-                f"M2 {p[0]}\n"
-                f"WeightFunction {p[1]}\n"
-                f"IC50ValueFile {params.response_vector}\n"
-                f"Threshold {params.threshold}"
+                f"File\t{params.feature_matrix}\n"
+                f"Directory\t{params.out_dir}\n"
+                f"M1\t{p[0]}\n"
+                f"M2\t{p[0]}\n"
+                f"WeightFunction\t{p[1]}\n"
+                f"IC50ValueFile\t{params.response_vector}\n"
+                f"Threshold\t{params.threshold}"
             )
             with open(fl, "w+") as f:
                 f.write(config)
-            
-## -- 3.0 Run MERIDA_ILP
-rule run_merida_ilp:
+
+
+rule run_merida:
     input:
-        merida_files
+        "procdata/merida_input/roche_{file}.txt"
     params:
         "no"
+    output:
+        "results/roche_{file}.txt"
     shell:
-
+        """
+        MERIDA_ILP {input} {params} || touch {output}
+        """

@@ -22,7 +22,7 @@ bin_path: /home/ceeles/bin
 cplex_path: $CPLEX_HOME
 
 # -- 4. Datasets to download
-## TODO::
+## TODO:: Implement data download and preprocesing
 dataset: CCLE
 
 # -- 5. Identifiers for this run of the pipeline
@@ -30,13 +30,17 @@ analysis_name: roche
 
 # -- 6. Hyper parameter search space
 # Passed to Python range function to make a sequence
-M: {start: 2, stop: 512, step: 2}
-v: [linear, cubic, quadratic]
+M: {start: 2, stop: 8, step: 2}
+v: [quadratic]
 threshold: 0.2
 
 # -- 7. Input/output files for MERIDA
-feature_matrix: ./procdata/CCLE_bimodal_genes.txt
-response_vector: ./procdata/CCLE_erlotinib_ACC.txt
-out_dir: ./results
+rawdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
+metadata: /home/ceeles/development/MERIDA_snakemake_pipeline/metadata
+procdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
+results: /home/ceeles/development/MERIDA_snakemake_pipeline/results
+
+feature_matrix: CCLE_bimodal_genes.txt
+response_vector: CCLE_erlotinib_ACC.txt
 
 # -- 8. Slurm Header Configuration
