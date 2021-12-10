@@ -31,7 +31,7 @@ analysis_name: roche
 # -- 6. Hyper parameter search space
 # Passed to Python range function to make a sequence
 M: {start: 2, stop: 8, step: 2}
-v: [quadratic]
+v: [linear, quadratic, cubic]
 threshold: 0.2
 # Set to no or integer number of folds to cross validate over (.e.g, 5)
 cross_validation: "no"
@@ -42,7 +42,7 @@ metadata: /home/ceeles/development/MERIDA_snakemake_pipeline/metadata
 procdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
 results: /home/ceeles/development/MERIDA_snakemake_pipeline/results
 
-feature_matrix: CCLE_bimodal_genes.txt
-response_vector: CCLE_erlotinib_AAC.txt
+feature_matrix: CCLE_bimodal_genes_small.txt
+response_vector: CCLE_erlotinib_AAC_small.txt
 
 # -- 8. Slurm Header Configuration

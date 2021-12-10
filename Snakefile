@@ -1,6 +1,8 @@
 import os
 import re
 from glob import glob
+import pandas as pd
+
 
 configfile: "config.yml"
 
@@ -21,6 +23,7 @@ out_dir = os.path.join(results, "")
 analysis_name = config["analysis_name"]
 feature_matrix = os.path.join(procdata, config["feature_matrix"])
 response_vector = os.path.join(procdata, config["response_vector"])
+cv = config["cross_validation"]
 
 
 # -- 0.1 Make MERIDA input files for to grid search hyperparameterss
@@ -33,13 +36,17 @@ param_grid = [(m, v) for m in M_list for v in v_function]
 
 # -- 0.2 Build input and output file names
 merida_files = [
-    f"procdata/merida_input/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
+    f"procdata/merida_input/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.basename(feature_matrix)}" 
         for m, v in param_grid
 ]
 merida_results = [
-    f"results/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
+    f"results/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.basename(feature_matrix)}" 
         for m, v in param_grid
 ]
+
+# -- 0.2 Dimensions of input matrix
+feature_df = pd.read_csv(feature_matrix, sep="")
+features, samples = feature_df.shape
 
 
 # -- 1. Rule to gather results from other rules
@@ -88,7 +95,8 @@ rule build_merida_input_files:
         feature_matrix=feature_matrix,
         response_vector=response_vector,
         out_dir=out_dir,
-        threshold=threshold
+        threshold=threshold,
+        cv=cv
     output:
         merida_files
     run:
@@ -103,6 +111,16 @@ rule build_merida_input_files:
                 f"IC50ValueFile\t{params.response_vector}\n"
                 f"Threshold\t{params.threshold}\n" # fails without trailing \n
             )
+            # Add additional configuration when doing cross validation
+            if isinstance(params.cv, int) and params.cv > 0:
+                config = (
+                    f"{config}"
+                    f"L1\t0\n"
+                    f"L2\t0\n"
+                    f"ErrorFunction\tmisclassification\n"
+                    f"CVMode\tfold\n"
+                    f"alpha\t0\n"
+                )  
             with open(fl, "w+") as f:
                 f.write(config)
 
@@ -110,18 +128,30 @@ rule build_merida_input_files:
 # -- 5.0 Run MERIDA_ILP using config files
 rule run_merida:
     input:
-        "procdata/merida_input/roche_{file}.txt"
+        "procdata/merida_input/roche_M{m}_v{v}_{file}.txt"
     params:
-        cv=config["cross_validation"],
-        jobname="roche_{file}.job",
-        runtime="2:0:0"
+        cv=cv,
+        jobname="roche_M{m}_v{v}_{file}.job",
+        runtime="2:0:0",
+        features=2816,
+        samples=9
     resources:
         time="6:0:0"
     output:
-        "results/roche_{file}.txt"
+        f"{results}/roche_M{{m}}_v{{v}}_{{file}}.txt"
     shell:
-        """
+        # Double curly brace is literal curly brance inside f-string, single
+        #  curly brace is interpolated variable
+        f"""
         source ~/.bashrc
         conda activate merida
-        MERIDA_ILP {input} {params.cv} > results/roche_{wildcards.file}.log
+        if [ param.cv = "no" ]
+        then
+            MERIDA_ILP {{input}} {{params.cv}} > \
+                results/roche_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log
+        else
+            MERIDA_ILP {{input}} yes {{params.cv}} > \
+                results/roche_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log
+        mv {results}/Results_M_{{m}}_Feat_{{params.features}}Sample_{{params.samples}}.txt \
+            {{output}} || echo "failed" > {{output}}
         """
