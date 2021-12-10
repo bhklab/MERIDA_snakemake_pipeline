@@ -10,36 +10,43 @@ merida_repo = config["merida_repo"]
 bin_path = config["bin_path"]
 cplex_path = config["cplex_path"]
 
-# -- 0.1 Make MERIDA input files for to grid search hyperparameterss
-analysis_name = config["analysis_name"]
-feature_matrix = config["feature_matrix"]
-response_vector = config["response_vector"]
-out_dir = config["out_dir"]
-threshold = config["threshold"]
+rawdata = config["rawdata"]
+metadata = config["metadata"]
+procdata = config["procdata"]
+results = config["results"]
+# add trailing slash for MERIDA_ILP compatibility
+out_dir = os.path.join(results, "")
 
+analysis_name = config["analysis_name"]
+feature_matrix = os.path.join(procdata, config["feature_matrix"])
+response_vector = os.path.join(procdata, config["response_vector"])
+
+# -- 0.1 Make MERIDA input files for to grid search hyperparameterss
+
+threshold = config["threshold"]
 M_range = config["M"]
 v_function = config["v"]
 
 M_list = list(range(M_range["start"], M_range["stop"] + 1, M_range["step"]))
 param_grid = [(m, v) for m in M_list for v in v_function]
 
+# -- 0.2 Build input and output file names
 merida_files = [
     f"procdata/merida_input/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
         for m, v in param_grid
 ]
-
-## -- 3.0 Run MERIDA_ILP
 merida_results = [
     f"results/{analysis_name}_M{m}_v{v}_{os.path.basename(feature_matrix)}" 
         for m, v in param_grid
 ]
 
 
+# -- 1. Rule to gather results from other rules
 rule all:
     input:
         merida_results
 
-# -- 0.1 Project tool installation
+# -- 2.0 Project tool installation
 rule download_and_compile_merida:
     params:
         repo=merida_repo,
@@ -61,7 +68,8 @@ rule download_and_compile_merida:
         ln -s `pwd`/MERIDA_ILP {output.bin}
         """
 
-# -- 1.0 Download the Project Data
+
+# -- 3.0 Download the Project Data
 ## TODO:: Add download and preprocessing scripts
 # pset_list = config["pset_list"]
 # rule download_psets:
@@ -71,6 +79,7 @@ rule download_and_compile_merida:
 #         psets=
 
 
+# -- 4.0 Build configuration files required as MERIDA_ILP input
 rule build_merida_input_files:
     params:
         grid=param_grid,
@@ -96,6 +105,7 @@ rule build_merida_input_files:
                 f.write(config)
 
 
+# -- 5.0 Run MERIDA_ILP using config files
 rule run_merida:
     input:
         "procdata/merida_input/roche_{file}.txt"
@@ -105,5 +115,5 @@ rule run_merida:
         "results/roche_{file}.txt"
     shell:
         """
-        MERIDA_ILP {input} {params} || touch {output}
+        MERIDA_ILP {input} {params} > {output} || echo "failed" > {output}
         """
