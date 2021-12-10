@@ -4,6 +4,7 @@ from glob import glob
 
 configfile: "config.yml"
 
+
 # -- 0.0 Configuration variables
 src_path = config["src_path"]
 merida_repo = config["merida_repo"]
@@ -21,8 +22,8 @@ analysis_name = config["analysis_name"]
 feature_matrix = os.path.join(procdata, config["feature_matrix"])
 response_vector = os.path.join(procdata, config["response_vector"])
 
-# -- 0.1 Make MERIDA input files for to grid search hyperparameterss
 
+# -- 0.1 Make MERIDA input files for to grid search hyperparameterss
 threshold = config["threshold"]
 M_range = config["M"]
 v_function = config["v"]
@@ -45,6 +46,7 @@ merida_results = [
 rule all:
     input:
         merida_results
+
 
 # -- 2.0 Project tool installation
 rule download_and_compile_merida:
@@ -99,7 +101,7 @@ rule build_merida_input_files:
                 f"M2\t{p[0]}\n"
                 f"WeightFunction\t{p[1]}\n"
                 f"IC50ValueFile\t{params.response_vector}\n"
-                f"Threshold\t{params.threshold}"
+                f"Threshold\t{params.threshold}\n" # fails without trailing \n
             )
             with open(fl, "w+") as f:
                 f.write(config)
@@ -110,10 +112,16 @@ rule run_merida:
     input:
         "procdata/merida_input/roche_{file}.txt"
     params:
-        "no"
+        cv=config["cross_validation"],
+        jobname="roche_{file}.job",
+        runtime="2:0:0"
+    resources:
+        time="6:0:0"
     output:
         "results/roche_{file}.txt"
     shell:
         """
-        MERIDA_ILP {input} {params} > {output} || echo "failed" > {output}
+        source ~/.bashrc
+        conda activate merida
+        MERIDA_ILP {input} {params.cv} > results/roche_{wildcards.file}.log
         """

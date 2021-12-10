@@ -33,6 +33,8 @@ analysis_name: roche
 M: {start: 2, stop: 8, step: 2}
 v: [quadratic]
 threshold: 0.2
+# Set to no or integer number of folds to cross validate over (.e.g, 5)
+cross_validation: "no"
 
 # -- 7. Input/output files for MERIDA
 rawdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
@@ -41,6 +43,6 @@ procdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
 results: /home/ceeles/development/MERIDA_snakemake_pipeline/results
 
 feature_matrix: CCLE_bimodal_genes.txt
-response_vector: CCLE_erlotinib_ACC.txt
+response_vector: CCLE_erlotinib_AAC.txt
 
 # -- 8. Slurm Header Configuration
