@@ -182,20 +182,26 @@ rule run_merida:
         # Double curly brace is literal curly brance inside f-string, single
         #  curly brace is interpolated variable
         f"""
-        # Load environment
+        set +u
         source ~/.bashrc
         conda activate merida
-        # Run MERIDA_ILP
-        #if [ {{params.cv}} = "no" ]
-        #then
-        #    echo "No VCV"
-        #    MERIDA_ILP {{input}} {{params.cv}} > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log || touch {{output}}
-        #else
-        MERIDA_ILP {{input}} yes {{params.cv}} > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log || touch {{output}}
-        #fi
-        # Fix file names after execution
-        # mv {results}/Results_M_{{wildcards.m}}_Feat_{{params.features}}Sample_{{params.samples}}.txt {{output}} || echo "failed" > {{output}}
-        # mv ./Solution.sol {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.solution.sol || echo "solution failed"
-        # mv ./Feasible.txt \
-        #    {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.feasible.txt || echo "feasible failed"
+
+        MERIDA_ILP {{input}} yes {{params.cv}} &> logs/merida_errors.log
         """
+
+# Run MERIDA_ILP
+# MERIDA_ILP {{input}} yes {{params.cv}}
+
+# > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log
+        
+#if [ {{params.cv}} = "no" ]
+#then
+#    echo "No VCV"
+#    MERIDA_ILP {{input}} {{params.cv}} > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log || touch {{output}}
+#els
+#fi
+# Fix file names after execution
+# mv {results}/Results_M_{{wildcards.m}}_Feat_{{params.features}}Sample_{{params.samples}}.txt {{output}} || echo "failed" > {{output}}
+# mv ./Solution.sol {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.solution.sol || echo "solution failed"
+# mv ./Feasible.txt \
+#    {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.feasible.txt || echo "feasible failed"

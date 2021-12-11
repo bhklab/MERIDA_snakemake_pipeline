@@ -292,9 +292,9 @@ dependencies:
     - docloud==1.0.375
     - docplex==2.18.200+computecanada
     - idna==3.3+computecanada
-    - requests==2.26.0+computecanada
+    - requests==2.22.0
     - six==1.16.0+computecanada
     - typesentry==0.2.7
-    - urllib3==1.26.7+computecanada
+    - urllib3==1.25.6
     - wcwidth==0.2.5+computecanada
 prefix: /home/ceeles/miniconda3/envs/merida
