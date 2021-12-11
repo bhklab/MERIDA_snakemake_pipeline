@@ -53,7 +53,6 @@ merida_results = [
         for m, v in param_grid
 ]
 
-print(merida_files)
 
 # -- 0.2 Dimensions of input matrix
 feature_df = pd.read_csv(feature_matrix, sep=" ")
@@ -130,11 +129,12 @@ rule build_merida_input_files:
         for fl, p in zip(output, params.grid):
             # NOTE: MERIDA requires tab delimitation or will fail to read config
             conf["File"] = f"File\t{params.feature_matrix}"
-            conf["Directory"] = os.path.join(
-                f"Directory\t{params.out_dir}",
+            result_dir = os.path.join(
+                params.out_dir,
                 os.path.splitext(os.path.basename(fl))[0]
             )
-            os.makedirs(conf["Directory"], exist_ok=True)
+            conf["Directory"] = f"Directory\t{result_dir}/"
+            os.makedirs(result_dir, mode=0o774, exist_ok=True)
             conf["M1"] = f"M1\t{p[0]}"
             conf["M2"] = f"M2\t{p[0]}"
             conf["WeightFunction"] = f"WeightFunction\t{p[1]}"
@@ -164,6 +164,8 @@ rule build_merida_input_files:
 rule run_merida:
     input:
         f"procdata/merida_input/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
+    log:
+        f"logs/{analysis_name}_M{{m}}_v{{v}}_{{file}}.log"
     params:
         cv=cv,
         jobname=f"{analysis_name}_M{{m}}_v{{v}}_{{file}}.job",
@@ -184,19 +186,16 @@ rule run_merida:
         source ~/.bashrc
         conda activate merida
         # Run MERIDA_ILP
-        if [ param.cv = "no" ]
-        then
-            MERIDA_ILP {{input}} {{params.cv}} > \
-                {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log
-        else
-            MERIDA_ILP {{input}} yes {{params.cv}} > \
-                {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log
-        fi
+        #if [ {{params.cv}} = "no" ]
+        #then
+        #    echo "No VCV"
+        #    MERIDA_ILP {{input}} {{params.cv}} > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log || touch {{output}}
+        #else
+        MERIDA_ILP {{input}} yes {{params.cv}} > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log || touch {{output}}
+        #fi
         # Fix file names after execution
-        mv {results}/Results_M_{{wildcards.m}}_Feat_{{params.features}}Sample_{{params.samples}}.txt \
-            {{output}} || echo "failed" > {{output}}
-        mv ./Solution.sol \
-           {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.solution.sol
-        mv ./Feasible.txt \
-           {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.feasible.txt
+        # mv {results}/Results_M_{{wildcards.m}}_Feat_{{params.features}}Sample_{{params.samples}}.txt {{output}} || echo "failed" > {{output}}
+        # mv ./Solution.sol {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.solution.sol || echo "solution failed"
+        # mv ./Feasible.txt \
+        #    {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.feasible.txt || echo "feasible failed"
         """

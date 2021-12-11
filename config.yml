@@ -30,8 +30,8 @@ analysis_name: roche
 
 # -- 6. Hyper parameter search space
 # Passed to Python range function to make a sequence
-M: {start: 2, stop: 8, step: 2}
-v: [linear, quadratic, cubic]
+M: {start: 2, stop: 4, step: 2}
+v: [cubic] #, quadratic, cubic]
 threshold: 0.2
 # Set to no or integer number of folds to cross validate over (e.g., 5)
 cross_validation: 5
