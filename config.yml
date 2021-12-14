@@ -30,26 +30,27 @@ analysis_name: roche
 
 # -- 6. Hyper parameter search space
 # Passed to Python range function to make a sequence
-M: {start: 2, stop: 4, step: 2}
-v: [cubic] #, quadratic, cubic]
+M: {start: 2, stop: 64, step: 2}
+v: [linear, quadratic, cubic]
 threshold: 0.2
 # Set to no or integer number of folds to cross validate over (e.g., 5)
 cross_validation: 5
 
 # -- 7. Input/output files for MERIDA
-rawdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
+rawdata: /home/ceeles/development/MERIDA_snakemake_pipeline/rawdata
 metadata: /home/ceeles/development/MERIDA_snakemake_pipeline/metadata
 procdata: /home/ceeles/development/MERIDA_snakemake_pipeline/procdata
 results: /home/ceeles/development/MERIDA_snakemake_pipeline/results
 
-feature_matrix: CCLE_bimodal_genes_small.txt
-response_vector: CCLE_erlotinib_AAC_small.txt
+feature_matrix: CCLE_bimodal_genes.txt
+response_vector: CCLE_erlotinib_AAC.txt
 
 # null or path to preselected feature file, format must match MERIDA specificaitons
 ## NOTE:: This parameter has not been tested!
 preselected_features: null
 
 # -- 8. Slurm Header Configuration
-cpu_per_job: 4
-mem_per_job: 4G
-runtime_per_job: "0:30:0"
+cpu_per_job: 16
+mem_per_job: 16G
+runtime_per_job: "4-00:00:00"
+slurm_output: /home/ceeles/development/MERIDA_snakemake_pipeline/logs/slurm-%j.out

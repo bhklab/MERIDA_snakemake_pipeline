@@ -57,7 +57,7 @@ merida_results = [
 # -- 0.2 Dimensions of input matrix
 feature_df = pd.read_csv(feature_matrix, sep=" ")
 samples, features = feature_df.shape
-
+samples = samples - 2  # adjust for w and r columns
 
 # -- 1. Rule to gather results from other rules
 rule all:
@@ -163,7 +163,7 @@ rule build_merida_input_files:
 # -- 5.0 Run MERIDA_ILP using config files
 rule run_merida:
     input:
-        f"procdata/merida_input/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
+        f"{procdata}/merida_input/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
     log:
         f"logs/{analysis_name}_M{{m}}_v{{v}}_{{file}}.log"
     params:
@@ -172,6 +172,7 @@ rule run_merida:
         runtime=config["runtime_per_job"],
         cpu=config["cpu_per_job"],
         mem=config["mem_per_job"],
+        slurm_output=config["slurm_output"],
         features=features,
         samples=samples
     resources:
@@ -182,26 +183,16 @@ rule run_merida:
         # Double curly brace is literal curly brance inside f-string, single
         #  curly brace is interpolated variable
         f"""
-        set +u
+        set +u  # disable unset variable errors, needed for conda usage
         source ~/.bashrc
         conda activate merida
 
-        MERIDA_ILP {{input}} yes {{params.cv}} &> logs/merida_errors.log
+        if [ {{params.cv}} = "no" ]
+        then
+            MERIDA_ILP {{input}} {{params.cv}} &> logs/{{params.jobname}}.log
+        else
+            MERIDA_ILP {{input}} yes {{params.cv}} &> logs/{{params.jobname}}.log
+        fi
+
+        mv {results}/Result_M_{{wildcards.m}}_Feat_{{params.features}}_Sample_{{params.samples}}.txt {{output}} || echo "failed" > {{output}}
         """
-
-# Run MERIDA_ILP
-# MERIDA_ILP {{input}} yes {{params.cv}}
-
-# > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log
-        
-#if [ {{params.cv}} = "no" ]
-#then
-#    echo "No VCV"
-#    MERIDA_ILP {{input}} {{params.cv}} > {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.log || touch {{output}}
-#els
-#fi
-# Fix file names after execution
-# mv {results}/Results_M_{{wildcards.m}}_Feat_{{params.features}}Sample_{{params.samples}}.txt {{output}} || echo "failed" > {{output}}
-# mv ./Solution.sol {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.solution.sol || echo "solution failed"
-# mv ./Feasible.txt \
-#    {results}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}/{analysis_name}_M{{wildcards.m}}_v{{wildcards.v}}_{{wildcards.file}}.feasible.txt || echo "feasible failed"
