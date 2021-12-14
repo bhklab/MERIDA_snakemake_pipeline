@@ -57,7 +57,7 @@ merida_results = [
 # -- 0.2 Dimensions of input matrix
 feature_df = pd.read_csv(feature_matrix, sep=" ")
 samples, features = feature_df.shape
-samples = samples - 2  # adjust for w and r columns
+features = features - 2  # adjust for w and r columns
 
 # -- 1. Rule to gather results from other rules
 rule all:
