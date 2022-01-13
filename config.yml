@@ -51,6 +51,6 @@ preselected_features: null
 
 # -- 8. Slurm Header Configuration
 cpu_per_job: 16
-mem_per_job: 16G
-runtime_per_job: "4-00:00:00"
+mem_per_job: 32G
+runtime_per_job: "7-00:00:00"
 slurm_output: /home/ceeles/development/MERIDA_snakemake_pipeline/logs/slurm-%j.out
