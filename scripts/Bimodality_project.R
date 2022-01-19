@@ -1,7 +1,7 @@
 library(Biobase)
 library(PharmacoGx)
 library(ggplot2)
-library(GSA) 
+library(GSA)
 library(piano)
 library(gsubfn)
 library(wCI)
@@ -17,9 +17,6 @@ source("src/getPredictions_LOBICO.R")
 perform_CL_bimodality <- F # flag for recomputing gene expression bimodality on cell lines.
 perform_MCC_bimodalGenesSimilarity <- F # flag for recomputing bimodal genes similarity using MCC metric
 perform_CTRPv2_training_BimodalGenes <- F # flag for retraining models based on CTRPv2 bimodal genes - RNAseq
-
-
-
 
 ######################################
 ######################################
