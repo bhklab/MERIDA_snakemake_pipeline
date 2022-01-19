@@ -3,6 +3,7 @@ library(matrixStats)
 library(checkmate)
 library(caret)
 
+
 #' Predict whether a sample is sensitive to a compound based on a MERIDA logical
 #'   model
 #'
@@ -17,8 +18,8 @@ library(caret)
 #'   sensitive based on the provide `senstivity_signature` and
 #'   `resistance_signature` feature vectors.
 #'
-#' @importFrom checkmate checkMatrix
-#' @importFrom matrixStatus rowAlls colAlls rowAnys colAnys rowSum colSum
+#' @importFrom checkmate assertMatrix
+#' @importFrom matrixStats rowAnys
 #' @export
 predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
         resistance_signature) {
@@ -54,6 +55,7 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
     sens_mat <- test_mat[, sens_sig, drop=FALSE]
     resist_mat <- test_mat[, resist_sig, drop=FALSE]
 
+    # apply MERIDA algorithm and return results
     predict_mat <- matrix(
         as.integer(rowAnys(sens_mat) & !rowAnys(resist_mat)),
         dimnames=list(rownames(sens_mat), "predicted_sensitive")
@@ -62,14 +64,17 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
     return(predict_mat)
 }
 
+
+# equivalent to if __name__ == "__main__": in Python
 if (Sys.nframe() == 0) {
     # read in the test data
     test_data <- read.table("procdata/test_matrix.txt", sep=" ")
     test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
-    test_labels <- matrix(1 - test_data$r, ncol=1,
+    test_labels <- matrix(test_data$r, ncol=1,
         dimnames=list(rownames(test_data), "sensitive")
     )
     test_aac <- read.table("procdata/test_AAC_file.txt", sep=" ")
+    test_labels2 <- as.integer(test_aac > mean(test_aac[, 1]))
 
     # read in all models
     models <- fread("results/merida_models.csv")
