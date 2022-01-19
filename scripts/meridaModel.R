@@ -65,9 +65,76 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
     return(predict_mat)
 }
 
+#' @param models `data.table` Table with the list columns `sensitivity` and
+#'   `resistance` containing `character` vectors of feature names for predictive
+#'   of sensitivity or resistance to the drug of interest.
+#' @param mat `matrix` Of data on which the MERIDA to make predictions with.
+#' @param labels `integer` Vector of true labels for `mat`.
+#' 
+#' @value `data.table` The `models` table with `performance` and `mcc` columns,
+#'   containing the results of `caret::confusionMatrix` and `mltools::mcc` for
+#'   each row of `models`.
+#'
+#' @importFrom mltools mcc
+#' @importFrom caret confusionMatrix
+#' @importFrom data.table data.table copy
+#' @export
+evaluateMERIDAmodels <- function(models, mat, labels) {
+
+    models <- copy(models)
+    
+    # make prediciton for each model
+    models[,
+        predictions := Map(f=predictSensitivityMERIDA,
+            list(mat), sensitivity, resistance)
+    ]
+
+    # assess the classification performance with caret::confusionMatrix
+    models[, predictions_factor := lapply(predictions, factor, levels=c(1, 0))]
+    models[,
+        performance := Map(f=caret::confusionMatrix, predictions_factor,
+            list(factor(labels, levels=c(1, 0))))
+    ]
+    models[,
+        mcc := vapply(predictions_factor, FUN=mltools::mcc, 
+            actuals=factor(labels, levels=c(1, 0)), numeric(1))
+    ]
+
+    return(models)
+}
+
+#' @param models `data.table` Table with columns `M`, `v`, `fold` specifying the
+#'   model parameters and `performance`, `mcc` containing model evaluations,
+#'   as returned by `evaluateMERIDAmodels`.
+#'
+#' @value `data.table` With model parameters and unpacked evaluation statistics,
+#'   convenient for comparing the performance of various MERIDA model runs for
+#'   hyperparameter tuning.
+#'
+#' @importFrom data.table data.table copy rbindlist setorderv
+#' @export
+extractMERIDAevaluation <- function(models) {
+    class_eval1 <- models[,
+        rbindlist(lapply(performance, \(x) as.list(x$byClass)))
+    ]
+    class_eval2 <- models[,
+        rbindlist(lapply(performance, \(x) as.list(x$overall)))
+    ]
+    keep_cols <- intersect(colnames(models), c("M", "v", "fold", "mcc",
+        "objective_value"))
+    class_eval <- cbind(models[, .SD, .SDcols=keep_cols], class_eval1,
+        class_eval2)
+    setorderv(class_eval, cols="Balanced Accuracy", order=-1L)
+
+    return(class_eval)
+}
+
+
 
 # equivalent to if __name__ == "__main__": in Python
 if (sys.nframe() == 0) {
+    # -- Testing data
+
     # read in the test data
     test_data <- read.table("procdata/test_matrix.txt", sep=" ")
     test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
@@ -77,37 +144,50 @@ if (sys.nframe() == 0) {
 
     # read in all models
     models <- fread("results/merida_models.csv")
-    setnames(models, "sensitivty", "sensitivity") # fix type in column name
+    test_models <- copy(models)
     # removing the gene version numbers to make feature names match
-    models[,
+    test_models[,
         sensitivity := strsplit(gsub("\\.\\d+", "", sensitivity), split="\\|")
     ]
-    models[,
+    test_models[,
         resistance := strsplit(gsub("\\.\\d+", "", resistance), split="\\|")
     ]
-    # make prediciton for each model
-    models[,
-        predictions := Map(f=predictSensitivityMERIDA,
-            list(test_mat), sensitivity, resistance)
-    ]
-    # assess the classification performance with caret::confusionMatrix
-    models[, predictions_factor := lapply(predictions, factor, levels=c(1, 0))]
-    models[,
-        performance := Map(f=confusionMatrix, predictions_factor,
-            list(factor(test_labels, levels=c(1, 0))))
-    ]
-    models[,
-        mcc := vapply(predictions_factor, FUN=mltools::mcc, 
-            actuals=factor(test_labels, levels=c(1, 0)), numeric(1))
-    ]
-    class_eval1 <- models[,
-        rbindlist(lapply(performance, \(x) as.list(x$byClass)))
-    ]
-    class_eval2 <- models[,
-        rbindlist(lapply(performance, \(x) as.list(x$overall)))
-    ]
-    class_eval <- cbind(models[, .(M, v, mcc)], class_eval1, class_eval2)
-    setorder(class_eval, -`Balanced Accuracy`)
+    test_models <- evaluateMERIDAmodels(test_models, test_mat, test_labels)
+    test_eval <- extractMERIDAevaluation(test_models)
 
-    fwrite(class_eval, file="results/MERIDA_model_eval.csv")
+    fwrite(test_eval, file="results/MERIDA_model_eval_test.csv")
+
+    # -- Training data
+    train_data <- read.table("procdata/CCLE_bimodal_genes.txt")
+    train_mat <- as.matrix(train_data[, !grepl("w|r", colnames(train_data))])
+    train_labels <- matrix(train_data$r, ncol=1,
+        dimnames=list(rownames(train_data), "response")
+    )
+
+    train_models <- fread("results/merida_models_by_fold.csv")
+    models1 <- copy(models)
+    train_models <- rbind(train_models, 
+        models1[, `:=`(objective_value=NULL, fold="all")]
+    )
+
+    train_models[, sensitivity := strsplit(unlist(sensitivity), split="\\|")]
+    train_models[, resistance := strsplit(unlist(resistance), split="\\|")]
+
+    train_models <- evaluateMERIDAmodels(train_models, train_mat, train_labels)
+    train_eval <- extractMERIDAevaluation(train_models)
+
+    fwrite(train_eval, file="results/MERAID_model_eval_train.csv")
+
+    train_eval_summary <- train_eval[
+        fold != "all", 
+        lapply(.SD, mean),
+        .SDcols=!c("M", "fold"),
+        by=.(M, v)
+    ]
+    train_eval_summary$fold <- "mean_of_folds"
+    train_eval_summary <- rbind(train_eval[fold == "all", ], 
+        train_eval_summary, fill=TRUE)
+    fwrite(train_eval_summary, 
+        file="results/MERIDA_model_eval_train_folds_vs_all.csv")
+
 }
