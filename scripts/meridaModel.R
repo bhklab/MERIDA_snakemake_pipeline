@@ -66,20 +66,18 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 
 
 # equivalent to if __name__ == "__main__": in Python
-if (Sys.nframe() == 0) {
+if (sys.nframe() == 0) {
     # read in the test data
     test_data <- read.table("procdata/test_matrix.txt", sep=" ")
     test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
     test_labels <- matrix(test_data$r, ncol=1,
-        dimnames=list(rownames(test_data), "sensitive")
+        dimnames=list(rownames(test_data), "response")
     )
-    test_aac <- read.table("procdata/test_AAC_file.txt", sep=" ")
-    test_labels2 <- as.integer(test_aac > mean(test_aac[, 1]))
 
     # read in all models
     models <- fread("results/merida_models.csv")
     setnames(models, "sensitivty", "sensitivity") # fix type in column name
-    # removing the gene version numbers to the feature names match
+    # removing the gene version numbers to make feature names match
     models[,
         sensitivity := strsplit(gsub("\\.\\d+", "", sensitivity), split="\\|")
     ]
@@ -97,4 +95,12 @@ if (Sys.nframe() == 0) {
         performance := Map(f=confusionMatrix, predictions_factor,
             list(factor(test_labels, levels=c(1, 0))))
     ]
+    class_eval1 <- models[,
+        rbindlist(lapply(performance, \(x) as.list(x$byClass)))
+    ]
+    class_eval2 <- models[,
+        rbindlist(lapply(performance, \(x) as.list(x$overall)))
+    ]
+    class_eval <- cbind(models[, .(M, v)], class_eval1, class_eval2)
+    setorder(class_eval, -`Balanced Accuracy`)
 }
