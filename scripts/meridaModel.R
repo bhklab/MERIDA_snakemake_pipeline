@@ -2,6 +2,7 @@ library(data.table)
 library(matrixStats)
 library(checkmate)
 library(caret)
+library(mltools)
 
 
 #' Predict whether a sample is sensitive to a compound based on a MERIDA logical
@@ -95,12 +96,18 @@ if (sys.nframe() == 0) {
         performance := Map(f=confusionMatrix, predictions_factor,
             list(factor(test_labels, levels=c(1, 0))))
     ]
+    models[,
+        mcc := vapply(predictions_factor, FUN=mltools::mcc, 
+            actuals=factor(test_labels, levels=c(1, 0)), numeric(1))
+    ]
     class_eval1 <- models[,
         rbindlist(lapply(performance, \(x) as.list(x$byClass)))
     ]
     class_eval2 <- models[,
         rbindlist(lapply(performance, \(x) as.list(x$overall)))
     ]
-    class_eval <- cbind(models[, .(M, v)], class_eval1, class_eval2)
+    class_eval <- cbind(models[, .(M, v, mcc)], class_eval1, class_eval2)
     setorder(class_eval, -`Balanced Accuracy`)
+
+    fwrite(class_eval, file="results/MERIDA_model_eval.csv")
 }
