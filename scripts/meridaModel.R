@@ -63,6 +63,7 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 }
 
 if (Sys.nframe() == 0) {
+    # read in the test data
     test_data <- read.table("procdata/test_matrix.txt", sep=" ")
     test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
     test_labels <- matrix(1 - test_data$r, ncol=1,
@@ -70,18 +71,22 @@ if (Sys.nframe() == 0) {
     )
     test_aac <- read.table("procdata/test_AAC_file.txt", sep=" ")
 
+    # read in all models
     models <- fread("results/merida_models.csv")
     setnames(models, "sensitivty", "sensitivity") # fix type in column name
+    # removing the gene version numbers to the feature names match
     models[,
         sensitivity := strsplit(gsub("\\.\\d+", "", sensitivity), split="\\|")
     ]
     models[,
         resistance := strsplit(gsub("\\.\\d+", "", resistance), split="\\|")
     ]
+    # make prediciton for each model
     models[,
         predictions := Map(f=predictSensitivityMERIDA,
             list(test_mat), sensitivity, resistance)
     ]
+    # assess the classification performance with caret::confusionMatrix
     models[, predictions_factor := lapply(predictions, factor, levels=c(1, 0))]
     models[,
         performance := Map(f=confusionMatrix, predictions_factor,
