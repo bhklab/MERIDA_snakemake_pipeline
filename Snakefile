@@ -45,11 +45,11 @@ param_grid = [(m, v) for m in M_list for v in v_function]
 
 # -- 0.2 Build input and output file names
 merida_files = [
-    f"{procdata}/merida_input/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.basename(feature_matrix)}" 
+    f"{procdata}/merida_input/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.basename(feature_matrix)}"
         for m, v in param_grid
 ]
 merida_results = [
-    f"{results}/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.splitext(os.path.basename(feature_matrix))[0]}/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.basename(feature_matrix)}" 
+    f"{results}/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.splitext(os.path.basename(feature_matrix))[0]}/{analysis_name}_M{m}_v{v}_cv{cv}_{os.path.basename(feature_matrix)}"
         for m, v in param_grid
 ]
 
@@ -153,7 +153,7 @@ rule build_merida_input_files:
                     f"preselected_features\t{params.preselected}"
             # Write the configuration files to the procdata directory
             conf_file = "\n".join([
-                *[s for s in conf.values() if s is not None], 
+                *[s for s in conf.values() if s is not None],
                 ""
             ])
             with open(fl, "w+") as f:
@@ -175,8 +175,6 @@ rule run_merida:
         slurm_output=config["slurm_output"],
         features=features,
         samples=samples
-    resources:
-        time="6:0:0"
     output:
         f"{results}/{analysis_name}_M{{m}}_v{{v}}_{{file}}/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
     shell:

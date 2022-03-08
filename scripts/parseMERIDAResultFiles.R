@@ -129,7 +129,7 @@ parse_merida_result_file <- function(file_path) {
             unlist() |>
             gsub(pattern='"', replacement='')
     }
-    merida_params$sensitivty <- paste0(best_feature_list$sensitivity, 
+    merida_params$sensitivity <- paste0(best_feature_list$sensitivity, 
         collapse="|")
     merida_params$resistance <- paste0(best_feature_list$resistance,
         collapse="|")
@@ -194,9 +194,9 @@ for (paths in fold_paths) {
     for (path in paths) parse_merida_result_file(path)
 }
 
-
 # 2.0 -- Read in and collate results for each set of parameters
-file_names <- c(features="feature_df", samples="sample_df")
+# Overall results
+file_names <- c(features="^feature_df", samples="^sample_df")
 file_paths <- lapply(file_names, 
     FUN=\(x) list.files(input_dir, pattern=paste0(x, ".csv"), 
         recursive=TRUE, full.names=TRUE)
@@ -206,3 +206,10 @@ for (i in seq_along(file_paths)) {
         rbindlist()
     fwrite(df_, file=file.path(input_dir, paste0(names(file_paths)[i], ".csv")))
 }
+
+# Cross-validation results
+fold_files <- unlist(lapply(fold_dirs, list.files, 
+    pattern="Fold\\d+_feature_df.csv", full.names=TRUE))
+fold_df <- lapply(fold_files, FUN=fread) |> rbindlist()
+merida_models <- unique(fold_df[, .(M, v, fold, sensitivity, resistance)])
+fwrite(merida_models, file=file.path(input_dir, "merida_models_by_fold.csv"))
