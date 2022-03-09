@@ -181,10 +181,6 @@ rule run_merida:
         # Double curly brace is literal curly brance inside f-string, single
         #  curly brace is interpolated variable
         f"""
-        set +u  # disable unset variable errors, needed for conda usage
-        source ~/.bashrc
-        conda activate merida
-
         if [ {{params.cv}} = "no" ]
         then
             MERIDA_ILP {{input}} {{params.cv}} &> logs/{{params.jobname}}.log
