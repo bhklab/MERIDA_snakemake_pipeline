@@ -30,17 +30,17 @@ analysis_name: roche
 
 # -- 6. Hyper parameter search space
 # Passed to Python range function to make a sequence
-M: {start: 2, stop: 10, step: 2}
+M: {start: 2, stop: 2, step: 2}
 v: [quadratic, cubic]
 threshold: 0.2
 # Set to no or integer number of folds to cross validate over (e.g., 5)
 cross_validation: 5
 
 # -- 7. Input/output files for MERIDA
-rawdata: ./MERIDA_snakemake_pipeline/rawdata
-metadata: ./MERIDA_snakemake_pipeline/metadata
-procdata: ./MERIDA_snakemake_pipeline/procdata
-results: ./MERIDA_snakemake_pipeline/results
+rawdata: ./rawdata
+metadata: ./metadata
+procdata: ./procdata
+results: ./results
 
 feature_matrix: CCLE_bimodal_100.txt
 response_vector: CCLE_erlotinib_AAC.txt
