@@ -11,7 +11,7 @@ library(mltools)
 #' @param test_mat `matrix` of `integer`s, where 1 represents the presence of
 #'   of that feature in that sample.
 #' @param sensitivity_signature `character` Vector of feature names for the
-#'   sensitivity signature. Must match the colmn names of the test matrix.
+#'   sensitivity signature. Must match the column names of the test matrix.
 #' @param resistance_signature `character` Vector fo feature names for
 #'   the resistance signature. Must match the column names of the test matrix.
 #'
@@ -70,7 +70,7 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 #'   of sensitivity or resistance to the drug of interest.
 #' @param mat `matrix` Of data on which the MERIDA to make predictions with.
 #' @param labels `integer` Vector of true labels for `mat`.
-#' 
+#'
 #' @value `data.table` The `models` table with `performance` and `mcc` columns,
 #'   containing the results of `caret::confusionMatrix` and `mltools::mcc` for
 #'   each row of `models`.
@@ -82,7 +82,7 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 evaluateMERIDAmodels <- function(models, mat, labels) {
 
     models <- copy(models)
-    
+
     # make prediciton for each model
     models[,
         predictions := Map(f=predictSensitivityMERIDA,
@@ -96,7 +96,7 @@ evaluateMERIDAmodels <- function(models, mat, labels) {
             list(factor(labels, levels=c(1, 0))))
     ]
     models[,
-        mcc := vapply(predictions_factor, FUN=mltools::mcc, 
+        mcc := vapply(predictions_factor, FUN=mltools::mcc,
             actuals=factor(labels, levels=c(1, 0)), numeric(1))
     ]
 
@@ -166,7 +166,7 @@ if (sys.nframe() == 0) {
 
     train_models <- fread("results/merida_models_by_fold.csv")
     models1 <- copy(models)
-    train_models <- rbind(train_models, 
+    train_models <- rbind(train_models,
         models1[, `:=`(objective_value=NULL, fold="all")]
     )
 
@@ -179,15 +179,15 @@ if (sys.nframe() == 0) {
     fwrite(train_eval, file="results/MERAID_model_eval_train.csv")
 
     train_eval_summary <- train_eval[
-        fold != "all", 
+        fold != "all",
         lapply(.SD, mean),
         .SDcols=!c("M", "fold"),
         by=.(M, v)
     ]
     train_eval_summary$fold <- "mean_of_folds"
-    train_eval_summary <- rbind(train_eval[fold == "all", ], 
+    train_eval_summary <- rbind(train_eval[fold == "all", ],
         train_eval_summary, fill=TRUE)
-    fwrite(train_eval_summary, 
+    fwrite(train_eval_summary,
         file="results/MERIDA_model_eval_train_folds_vs_all.csv")
 
 }
