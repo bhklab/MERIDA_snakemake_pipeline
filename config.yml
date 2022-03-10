@@ -37,17 +37,24 @@ threshold: 0.2
 cross_validation: 5
 
 # -- 7. Input/output files for MERIDA
-rawdata: ./rawdata
-metadata: ./metadata
-procdata: ./procdata
-results: ./results
+# For deployment on Azure, set to empty string if not using Blob storage
+storage_container: merida-snakemake
+rawdata: rawdata
+metadata: metadata
+procdata: procdata
+results: results
 
 feature_matrix: CCLE_bimodal_100.txt
 response_vector: CCLE_erlotinib_AAC.txt
 
+## FIXME:: build this into file names so it can be read via wildcards!
+## TODO:: parameterize number of features to it can be a hyperparameter
+num_features: 2329
+num_samples: 610
+
 # null or path to preselected feature file, format must match MERIDA specifications
 ## NOTE:: This parameter has not been tested!
-preselected_features: null
+preselected_features: ""
 
 # -- 8. Slurm Header Configuration
 cpu_per_job: 4

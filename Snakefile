@@ -4,9 +4,7 @@ from glob import glob
 import pandas as pd
 from collections import OrderedDict
 
-
 configfile: "config.yml"
-
 
 # -- 0.0 Parse config.yml files into paths and parameters of the pipeline
 # For compliling merida
@@ -27,6 +25,10 @@ out_dir = os.path.join(results, "")
 analysis_name = config["analysis_name"]
 feature_matrix = os.path.join(procdata, config["feature_matrix"])
 response_vector = os.path.join(procdata, config["response_vector"])
+
+# Input data dimensions for file names
+samples = config["num_samples"]
+features = config["num_features"]
 
 # Cross validation and a priori feature selection
 cv = config["cross_validation"]
@@ -53,11 +55,6 @@ merida_results = [
         for m, v in param_grid
 ]
 
-
-# -- 0.2 Dimensions of input matrix
-feature_df = pd.read_csv(feature_matrix, sep=" ")
-samples, features = feature_df.shape
-features = features - 2  # adjust for w and r columns
 
 # -- 1. Rule to gather results from other rules
 rule all:
@@ -88,28 +85,22 @@ rule download_and_compile_merida:
         """
 
 
-# -- 3.0 Download the Project Data
-## TODO:: Add download and preprocessing scripts
-# pset_list = config["pset_list"]
-# rule download_psets:
-#     input:
-#         os.path.join(bin_path, "MERIDA_ILP")
-#     params:
-#         psets=
-
-
 # -- 4.0 Build configuration files required as MERIDA_ILP input
 rule build_merida_input_files:
+    input:
+        feature_matrix=feature_matrix,
+        response_vector=response_vector#,
+        #preselected=preselected_features
     params:
         grid=param_grid,
-        feature_matrix=feature_matrix,
-        response_vector=response_vector,
-        out_dir=out_dir,
         threshold=threshold,
         cv=cv,
-        preselected=preselected_features
+        out_dir=directory(out_dir),
+        #container=config["storage_container"]
+    log:
+        "logs/build_merida_input_files.log"
     output:
-        merida_files
+        merida_files=merida_files
     run:
         conf = OrderedDict([
             ("File", None),
@@ -126,9 +117,9 @@ rule build_merida_input_files:
             ("alpha", None),
             ("preselected_features", None)
         ])
-        for fl, p in zip(output, params.grid):
+        for fl, p in zip(output.merida_files, params.grid):
             # NOTE: MERIDA requires tab delimitation or will fail to read config
-            conf["File"] = f"File\t{params.feature_matrix}"
+            conf["File"] = f"File\t{input.feature_matrix}"
             result_dir = os.path.join(
                 params.out_dir,
                 os.path.splitext(os.path.basename(fl))[0]
@@ -138,7 +129,7 @@ rule build_merida_input_files:
             conf["M1"] = f"M1\t{p[0]}"
             conf["M2"] = f"M2\t{p[0]}"
             conf["WeightFunction"] = f"WeightFunction\t{p[1]}"
-            conf["IC50ValueFile"] = f"IC50ValueFile\t{params.response_vector}"
+            conf["IC50ValueFile"] = f"IC50ValueFile\t{input.response_vector}"
             conf["Threshold"] = f"Threshold\t{params.threshold}"
             # Add additional configuration when doing cross validation
             if isinstance(params.cv, int) and params.cv > 0:
@@ -148,9 +139,9 @@ rule build_merida_input_files:
                 conf["CVMode"] = f"CVMode\tfold"
                 conf["alpha"] = f"alpha\t0"
             # Add a priori feature selection, if specified in config.yml
-            if params.preselected is not None and os.path.exists(params.preselected):
-                conf["preselected_features"] = \
-                    f"preselected_features\t{params.preselected}"
+            # if input.preselected is not "" and os.path.exists(input.preselected):
+            #     conf["preselected_features"] = \
+            #         f"preselected_features\t{input.preselected}"
             # Write the configuration files to the procdata directory
             conf_file = "\n".join([
                 *[s for s in conf.values() if s is not None],
@@ -163,7 +154,9 @@ rule build_merida_input_files:
 # -- 5.0 Run MERIDA_ILP using config files
 rule run_merida:
     input:
-        f"{procdata}/merida_input/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
+        feature_matrix=feature_matrix,
+        response_vector=response_vector,
+        file_name=f"{procdata}/merida_input/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
     log:
         f"logs/{analysis_name}_M{{m}}_v{{v}}_{{file}}.log"
     params:
@@ -175,18 +168,21 @@ rule run_merida:
         slurm_output=config["slurm_output"],
         features=features,
         samples=samples
+    container:
+        "docker://bhklabbatch.azurecr.io/aks/aks-snakemake-cplex-merida-r"
     output:
         f"{results}/{analysis_name}_M{{m}}_v{{v}}_{{file}}/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
     shell:
-        # Double curly brace is literal curly brance inside f-string, single
-        #  curly brace is interpolated variable
+        # Double curly brace is literal curly brace inside f-string, single
+        #  curly brace is interpolated python variable
         f"""
         if [ {{params.cv}} = "no" ]
         then
-            MERIDA_ILP {{input}} {{params.cv}} &> logs/{{params.jobname}}.log
+            MERIDA_ILP {{input.file_name}} {{params.cv}} &>> {{log}}
         else
-            MERIDA_ILP {{input}} yes {{params.cv}} &> logs/{{params.jobname}}.log
+            MERIDA_ILP {{input.file_name}} yes {{params.cv}} &>> {{log}}
         fi
 
-        mv {results}/Result_M_{{wildcards.m}}_Feat_{{params.features}}_Sample_{{params.samples}}.txt {{output}} || echo "failed" > {{output}}
+        ls -lah -R >> {{log}}
+        mv {results}/Result_M_{{wildcards.m}}_Feat_{{params.features}}_Sample_{{params.samples}}.txt {{output}} &>> {{log}} || echo "failed" 1> {{output}} 2>> {{log}}
         """
