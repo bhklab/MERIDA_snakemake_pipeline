@@ -55,11 +55,11 @@ merida_results = [
         for m, v in param_grid
 ]
 
-
 # -- 1. Rule to gather results from other rules
 rule all:
     input:
         merida_results
+
 
 
 # -- 2.0 Project tool installation
@@ -84,19 +84,35 @@ rule download_and_compile_merida:
         ln -s `pwd`/MERIDA_ILP {output.bin}
         """
 
+nFeature = config["nFeature"]
+nSolution = config["nSolution"]
+# NOTE: nSolution is number of solutions to ensemble and will output
+#   nSolution x nFeature total features in the output matrix, not 3 10-feature
+#   output matrices
+rule mrmr_feature_selection:
+    input:
+        f"{procdata}/CCLE_{{drug}}_Input_Matrix.txt"
+    params:
+        nFeature=nFeature,
+        nSolution=nSolution
+    output:
+        f"{procdata}/{analysis_name}/CCLE_{{drug}}_{nSolution}sol_{nFeature}feat.txt"
+    script:
+        "scripts/mRMReFeatureSelection.R"
+
+
 
 # -- 4.0 Build configuration files required as MERIDA_ILP input
 rule build_merida_input_files:
     input:
-        feature_matrix=feature_matrix,
-        response_vector=response_vector#,
-        #preselected=preselected_features
+        feature_matrix=f"{procdata}/{analysis_name}/CCLE_{{drug}}_{nSolution}sol_{nFeature}feat.txt",
+        response_vector=f"{procdata}/{analysis_name}/CCLE_AAC_file.txt"
     params:
         grid=param_grid,
         threshold=threshold,
         cv=cv,
         out_dir=directory(out_dir),
-        #container=config["storage_container"]
+        container=config["storage_container"]
     log:
         "logs/build_merida_input_files.log"
     output:
@@ -121,6 +137,7 @@ rule build_merida_input_files:
             # NOTE: MERIDA requires tab delimitation or will fail to read config
             conf["File"] = f"File\t{input.feature_matrix}"
             result_dir = os.path.join(
+                params.container,
                 params.out_dir,
                 os.path.splitext(os.path.basename(fl))[0]
             )
@@ -168,14 +185,18 @@ rule run_merida:
         slurm_output=config["slurm_output"],
         features=features,
         samples=samples
-    container:
-        "docker://bhklabbatch.azurecr.io/aks/aks-snakemake-cplex-merida-r"
     output:
         f"{results}/{analysis_name}_M{{m}}_v{{v}}_{{file}}/{analysis_name}_M{{m}}_v{{v}}_{{file}}.txt"
+    container: "docker://bhklab/aks-snakemake-cplex-merida:latest"
     shell:
         # Double curly brace is literal curly brace inside f-string, single
         #  curly brace is interpolated python variable
-        f"""
+        f'''
+        echo $(whoami) >> {{log}}
+        echo $PATH >> {{log}}
+
+        ls -lah -R >> {{log}}
+
         if [ {{params.cv}} = "no" ]
         then
             MERIDA_ILP {{input.file_name}} {{params.cv}} &>> {{log}}
@@ -183,6 +204,5 @@ rule run_merida:
             MERIDA_ILP {{input.file_name}} yes {{params.cv}} &>> {{log}}
         fi
 
-        ls -lah -R >> {{log}}
         mv {results}/Result_M_{{wildcards.m}}_Feat_{{params.features}}_Sample_{{params.samples}}.txt {{output}} &>> {{log}} || echo "failed" 1> {{output}} 2>> {{log}}
-        """
+        '''
