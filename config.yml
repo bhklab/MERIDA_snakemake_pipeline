@@ -29,6 +29,7 @@ dataset: CCLE
 analysis_name: roche
 
 # -- 6. mRMRe feature selection
+# must be an array, even if just one value or mRMReFeatureSelection.R will error
 nFeature: 10
 nSolution: 1
 
@@ -48,8 +49,9 @@ metadata: metadata
 procdata: procdata
 results: results
 
-feature_matrix: CCLE_bimodal_100.txt
-response_vector: CCLE_erlotinib_AAC.txt
+# Values inside { } will be filled in during the Snakemake run
+feature_matrix: CCLE_{drug}_Input_Matrix.txt
+response_vector: CCLE_{drug}_AAC.txt
 
 ## FIXME:: build this into file names so it can be read via wildcards!
 ## TODO:: parameterize number of features to it can be a hyperparameter
