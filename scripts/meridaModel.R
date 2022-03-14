@@ -33,7 +33,7 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
     sens_sig <- intersect(sensitivity_signature, features)
     resist_sig <- intersect(resistance_signature, features)
 
-    if (!length(sens_sig) || !length(resist_sig)) {
+    if (!length(sens_sig) && !length(resist_sig)) {
         warning("No features are present in the data for the sensitivity or ",
             "resistance signature. Please ensure the signature features match",
             "colnames(test_mat)!")
@@ -54,7 +54,9 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 
     # subset matrices of sensitivty and resistance features
     sens_mat <- test_mat[, sens_sig, drop=FALSE]
-    resist_mat <- test_mat[, resist_sig, drop=FALSE]
+    # deal with case when no resistance features are selected
+    resist_mat <- if (!length(resist_sig)) matrix(FALSE) else
+        test_mat[, resist_sig, drop=FALSE]
 
     # apply MERIDA algorithm and return results
     predict_mat <- matrix(
@@ -66,9 +68,9 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 }
 
 #' @param models `data.table` Table with the list columns `sensitivity` and
-#'   `resistance` containing `character` vectors of feature names for predictive
+#'   `resistance` containing `character` vectors of feature names predictive
 #'   of sensitivity or resistance to the drug of interest.
-#' @param mat `matrix` Of data on which the MERIDA to make predictions with.
+#' @param mat `matrix` Of data on which to make MERIDA predictions.
 #' @param labels `integer` Vector of true labels for `mat`.
 #'
 #' @value `data.table` The `models` table with `performance` and `mcc` columns,
@@ -120,8 +122,8 @@ extractMERIDAevaluation <- function(models) {
     class_eval2 <- models[,
         rbindlist(lapply(performance, \(x) as.list(x$overall)))
     ]
-    keep_cols <- intersect(colnames(models), c("M", "v", "fold", "mcc",
-        "objective_value"))
+    keep_cols <- intersect(colnames(models), c("source_file", "M", "v", "fold",
+        "mcc", "objective_value"))
     class_eval <- cbind(models[, .SD, .SDcols=keep_cols], class_eval1,
         class_eval2)
     setorderv(class_eval, cols="Balanced Accuracy", order=-1L)
@@ -136,15 +138,15 @@ if (sys.nframe() == 0) {
     # -- Testing data
 
     # read in the test data
-    test_data <- read.table("procdata/test_matrix.txt", sep=" ")
+    test_data <- read.table("procdata/GDSC_Erlotinib_Input_Matrix.txt", sep=" ")
     test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
     test_labels <- matrix(test_data$r, ncol=1,
         dimnames=list(rownames(test_data), "response")
     )
 
     # read in all models
-    models <- fread("results/merida_models.csv")
-    test_models <- copy(models)
+    models <- fread("results/merida_models_by_fold.csv")
+    test_models <- copy(models)[source_file %ilike% "Erlotinib", ]
     # removing the gene version numbers to make feature names match
     test_models[,
         sensitivity := strsplit(gsub("\\.\\d+", "", sensitivity), split="\\|")

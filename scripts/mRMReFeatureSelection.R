@@ -7,8 +7,6 @@ nSolution <- snakemake@params$nSolution
 output <- snakemake@output
 
 # -- mRMRe feature selection
-class(feature_matrix)
-print(str(feature_matrix))
 training_data_all <- read.table(feature_matrix[[1]])
 training_data <- training_data_all
 training_data <- data.frame(lapply(training_data, factor, ordered=TRUE))
@@ -26,8 +24,6 @@ selected_features <- colnames(training_data)[mrmr_res@filters[[1]]]
 
 filtered_input_data <- training_data_all[,
     c(selected_features, "w", "r")]
-
-print(str(output))
 
 write.table(filtered_input_data,
     file=file.path(output[[1]]),
