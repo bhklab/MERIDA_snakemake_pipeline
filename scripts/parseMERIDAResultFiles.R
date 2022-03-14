@@ -209,6 +209,10 @@ for (i in seq_along(file_paths)) {
         rbindlist(idcol="source_file")
     fwrite(df_, file=file.path(input_dir, paste0(names(file_paths)[i], ".csv")))
 }
+overall_models <- fread(file.path(input_dir, "features.csv"))
+merida_models_overall <- unique(overall_models[, .(source_file, M, v, fold, sensitivity, resistance)])
+fwrite(merida_models_overall, file=file.path(input_dir, "merida_models.csv"))
+
 
 # Cross-validation results
 fold_files <- unlist(lapply(fold_dirs, list.files,
