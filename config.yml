@@ -30,7 +30,7 @@ analysis_name: roche
 
 # -- 6. mRMRe feature selection
 # must be an array, even if just one value or mRMReFeatureSelection.R will error
-nFeature: 10
+nFeature: 100
 nSolution: 1
 
 # -- 6. Hyper parameter search space

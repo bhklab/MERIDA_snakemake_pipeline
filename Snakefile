@@ -49,6 +49,9 @@ M_list = list(range(M_range["start"], M_range["stop"] + 1, M_range["step"]))
 input_files = glob(f"{procdata}/{dataset}_*_Input_Matrix.txt")
 drug_names = [re.sub(f"{procdata}/{dataset}_|_Input_Matrix.txt", "", f) for f in input_files]
 
+## FIXME:: Remove this before a real run! Just a hack to run less drugs
+drug_names = ["Sorafenib"]
+
 nFeature = config["nFeature"]
 nSolution = config["nSolution"]
 merida_output = expand(
@@ -195,6 +198,8 @@ rule run_merida:
         slurm_output=config["slurm_output"],
         features=features,
         samples=samples
+    singularity:
+        "bhklabbatch.azurecr.io/aks/aks-snakemake-cplex-merida-r"
     output:
         f"{results}/{dataset}_{{drug}}.mRMRe_nsol{{nSolution}}_nfeat{{nFeature}}.MERIDA_M{{m}}_v{{v}}_cv{{cv}}.tar.gz"
     shell:
