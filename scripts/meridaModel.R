@@ -151,9 +151,9 @@ if (sys.nframe() == 0) {
                     ".*_Input_Matrix.txt"), full.names=TRUE)
         ))
         for (drug in testing_drugs) {
-        print(testing_set)
-        print(drug)
-        # read in the test data
+            print(testing_set)
+            print(drug)
+            # read in the test data
             test_data <- read.table(paste0("procdata/", testing_set,
                 "_", drug, "_Input_Matrix.txt"), sep=" ")
             test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
