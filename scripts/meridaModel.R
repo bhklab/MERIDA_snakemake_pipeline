@@ -33,7 +33,7 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
     sens_sig <- intersect(sensitivity_signature, features)
     resist_sig <- intersect(resistance_signature, features)
 
-    if (!length(sens_sig) || !length(resist_sig)) {
+    if (!length(sens_sig) && !length(resist_sig)) {
         warning("No features are present in the data for the sensitivity or ",
             "resistance signature. Please ensure the signature features match",
             "colnames(test_mat)!")
@@ -54,7 +54,9 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 
     # subset matrices of sensitivty and resistance features
     sens_mat <- test_mat[, sens_sig, drop=FALSE]
-    resist_mat <- test_mat[, resist_sig, drop=FALSE]
+    # deal with case when no resistance features are selected
+    resist_mat <- if (!length(resist_sig)) matrix(FALSE) else
+        test_mat[, resist_sig, drop=FALSE]
 
     # apply MERIDA algorithm and return results
     predict_mat <- matrix(
@@ -66,9 +68,9 @@ predictSensitivityMERIDA <- function(test_mat, sensitivity_signature,
 }
 
 #' @param models `data.table` Table with the list columns `sensitivity` and
-#'   `resistance` containing `character` vectors of feature names for predictive
+#'   `resistance` containing `character` vectors of feature names predictive
 #'   of sensitivity or resistance to the drug of interest.
-#' @param mat `matrix` Of data on which the MERIDA to make predictions with.
+#' @param mat `matrix` Of data on which to make MERIDA predictions.
 #' @param labels `integer` Vector of true labels for `mat`.
 #'
 #' @value `data.table` The `models` table with `performance` and `mcc` columns,
@@ -120,8 +122,8 @@ extractMERIDAevaluation <- function(models) {
     class_eval2 <- models[,
         rbindlist(lapply(performance, \(x) as.list(x$overall)))
     ]
-    keep_cols <- intersect(colnames(models), c("M", "v", "fold", "mcc",
-        "objective_value"))
+    keep_cols <- intersect(colnames(models), c("source_file", "M", "v", "fold",
+        "mcc", "objective_value", "sensitivity", "resistance"))
     class_eval <- cbind(models[, .SD, .SDcols=keep_cols], class_eval1,
         class_eval2)
     setorderv(class_eval, cols="Balanced Accuracy", order=-1L)
@@ -135,59 +137,89 @@ extractMERIDAevaluation <- function(models) {
 if (sys.nframe() == 0) {
     # -- Testing data
 
-    # read in the test data
-    test_data <- read.table("procdata/test_matrix.txt", sep=" ")
-    test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
-    test_labels <- matrix(test_data$r, ncol=1,
-        dimnames=list(rownames(test_data), "response")
+    training_set <- "CCLE"
+    testset_list <- setdiff(
+        unique(gsub("procdata/|_.*$", "", list.files("procdata", "*_Input_Matrix.txt", full.names=TRUE))),
+        training_set
     )
+    for (testing_set in testset_list) {
+        testing_drugs <- unique(
+            gsub(
+                paste0("procdata/|", testing_set, "_|_Input_Matrix.txt"),
+                "",
+                list.files("procdata", paste0(testing_set,
+                    ".*_Input_Matrix.txt"), full.names=TRUE)
+        ))
+        for (drug in testing_drugs) {
+            print(testing_set)
+            print(drug)
+            # read in the test data
+            test_data <- read.table(paste0("procdata/", testing_set,
+                "_", drug, "_Input_Matrix.txt"), sep=" ")
+            test_mat <- as.matrix(test_data[, !grepl("w|r", colnames(test_data))])
+            test_labels <- matrix(test_data$r, ncol=1,
+                dimnames=list(rownames(test_data), "response")
+            )
 
-    # read in all models
-    models <- fread("results/merida_models.csv")
-    test_models <- copy(models)
-    # removing the gene version numbers to make feature names match
-    test_models[,
-        sensitivity := strsplit(gsub("\\.\\d+", "", sensitivity), split="\\|")
-    ]
-    test_models[,
-        resistance := strsplit(gsub("\\.\\d+", "", resistance), split="\\|")
-    ]
-    test_models <- evaluateMERIDAmodels(test_models, test_mat, test_labels)
-    test_eval <- extractMERIDAevaluation(test_models)
+            # read in all models
+            models <- fread("results/merida_models.csv")[!(sensitivity %ilike% "resist"), ]  # drop models which predicted no features
+            test_models <- copy(models)[source_file %ilike% drug, ]
+            if (nrow(test_models) == 0) next()  # skip drugs which don't have any features predicted
+            # removing the gene version numbers to make feature names match
+            test_models[,
+                sensitivity := strsplit(gsub("\\.\\d+", "", sensitivity), split="\\|")
+            ]
+            test_models[,
+                resistance := strsplit(gsub("\\.\\d+", "", resistance), split="\\|")
+            ]
+            test_models <- evaluateMERIDAmodels(test_models, test_mat, test_labels)
+            test_eval <- extractMERIDAevaluation(test_models)[order(fold), ]
 
-    fwrite(test_eval, file="results/MERIDA_model_eval_test.csv")
-
+            fwrite(test_eval, file=paste0("results/MERIDA_", testing_set, "_", drug, "_model_eval_test.csv"))
+        }
+    }
+    training_drugs <- unique(
+        gsub(
+            paste0("procdata/|", training_set, "_|_Input_Matrix.txt"),
+            "",
+            list.files("procdata", paste0(training_set, ".*_Input_Matrix.txt"), full.names=TRUE)
+    ))
     # -- Training data
-    train_data <- read.table("procdata/CCLE_bimodal_genes.txt")
-    train_mat <- as.matrix(train_data[, !grepl("w|r", colnames(train_data))])
-    train_labels <- matrix(train_data$r, ncol=1,
-        dimnames=list(rownames(train_data), "response")
-    )
+    for (drug in training_drugs) {
+        train_data <- read.table(paste0("procdata/", training_set, "_", drug, "_Input_Matrix.txt"))
+        train_mat <- as.matrix(train_data[, !grepl("w|r", colnames(train_data))])
+        train_labels <- matrix(train_data$r, ncol=1,
+            dimnames=list(rownames(train_data), "response")
+        )
 
-    train_models <- fread("results/merida_models_by_fold.csv")
-    models1 <- copy(models)
-    train_models <- rbind(train_models,
-        models1[, `:=`(objective_value=NULL, fold="all")]
-    )
+        train_models <- fread("results/merida_models_by_fold.csv")[!(sensitivity %ilike% "resist"), ] # drop models which predicted no features
+        models1 <- copy(models)
+        train_models <- rbind(train_models,
+            models1[, `:=`(fold="all")]
+        )
+        train_models <- train_models[source_file %ilike% drug, ]
+        if (nrow(train_models) == 0) next()  # skip drug with no predicted features
 
-    train_models[, sensitivity := strsplit(unlist(sensitivity), split="\\|")]
-    train_models[, resistance := strsplit(unlist(resistance), split="\\|")]
+        train_models[, sensitivity := strsplit(unlist(sensitivity), split="\\|")]
+        train_models[, resistance := strsplit(unlist(resistance), split="\\|")]
 
-    train_models <- evaluateMERIDAmodels(train_models, train_mat, train_labels)
-    train_eval <- extractMERIDAevaluation(train_models)
+        train_models <- evaluateMERIDAmodels(train_models, train_mat, train_labels)
+        train_eval <- extractMERIDAevaluation(train_models)[order(fold), ]
 
-    fwrite(train_eval, file="results/MERAID_model_eval_train.csv")
+        fwrite(train_eval, file=paste0("results/MERIDA_", training_set, "_", drug, "_model_eval_train.csv"))
+    }
 
-    train_eval_summary <- train_eval[
-        fold != "all",
-        lapply(.SD, mean),
-        .SDcols=!c("M", "fold"),
-        by=.(M, v)
-    ]
-    train_eval_summary$fold <- "mean_of_folds"
-    train_eval_summary <- rbind(train_eval[fold == "all", ],
-        train_eval_summary, fill=TRUE)
-    fwrite(train_eval_summary,
-        file="results/MERIDA_model_eval_train_folds_vs_all.csv")
+
+    # train_eval_summary <- train_eval[
+    #     fold != "all",
+    #     lapply(.SD, mean),
+    #     .SDcols=!c("M", "fold"),
+    #     by=.(M, v)
+    # ]
+    # train_eval_summary$fold <- "mean_of_folds"
+    # train_eval_summary <- rbind(train_eval[fold == "all", ],
+    #     train_eval_summary, fill=TRUE)
+    # fwrite(train_eval_summary,
+    #     file="results/MERIDA_model_eval_train_folds_vs_all.csv")
 
 }
