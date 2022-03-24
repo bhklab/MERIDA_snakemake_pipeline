@@ -100,6 +100,8 @@ rule download_and_compile_merida:
 
 # -- 4.0 Build configuration files required as MERIDA_ILP input
 rule build_merida_input_files:
+    input:
+
     params:
         grid=param_grid,
         feature_matrix=feature_matrix,
@@ -111,6 +113,7 @@ rule build_merida_input_files:
     output:
         merida_files
     run:
+        print(os.listdir())
         conf = OrderedDict([
             ("File", None),
             ("Directory", None),
